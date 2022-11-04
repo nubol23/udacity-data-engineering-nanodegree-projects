@@ -1,0 +1,1 @@
+This repository contains my solutions to Udacity's Data Engineering nanodegree projects.
