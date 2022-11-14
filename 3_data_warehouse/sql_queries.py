@@ -58,7 +58,7 @@ staging_songs_table_create = ("""
 
 songplay_table_create = ("""
     CREATE TABLE IF NOT EXISTS songplays (
-        songplay_id integer identity(0,1) NOT NULL SORTKEY,
+        songplay_id integer identity(0,1) NOT NULL SORTKEY PRIMARY KEY,
         start_time timestamp NOT NULL,
         user_id int NOT NULL DISTKEY,
         level varchar,
@@ -72,7 +72,7 @@ songplay_table_create = ("""
 
 user_table_create = ("""
     CREATE TABLE IF NOT EXISTS users (
-        user_id integer NOT NULL SORTKEY, 
+        user_id integer NOT NULL SORTKEY PRIMARY KEY,
         first_name varchar, 
         last_name varchar, 
         gender varchar, 
@@ -82,33 +82,33 @@ user_table_create = ("""
 
 song_table_create = ("""
     CREATE TABLE IF NOT EXISTS songs (
-        song_id varchar NOT NULL SORTKEY, 
-        title varchar NOT NULL, 
-        artist_id varchar, 
-        year integer , 
+        song_id varchar NOT NULL SORTKEY PRIMARY KEY,
+        title varchar NOT NULL,
+        artist_id varchar,
+        year integer,
         duration decimal(10)
     );
 """)
 
 artist_table_create = ("""
     CREATE TABLE IF NOT EXISTS artists (
-        artist_id varchar NOT NULL SORTKEY, 
-        name varchar NOT NULL, 
-        location varchar, 
-        latitude decimal(10), 
+        artist_id varchar NOT NULL SORTKEY PRIMARY KEY,
+        name varchar NOT NULL,
+        location varchar,
+        latitude decimal(10),
         longitude decimal(10)
     );
 """)
 
 time_table_create = ("""
     CREATE TABLE IF NOT EXISTS time (
-        start_time timestamp NOT NULL sortkey,
-        hour smallint , 
-        day smallint , 
-        week smallint , 
-        month smallint , 
-        year smallint , 
-        weekday smallint 
+        start_time timestamp NOT NULL SORTKEY PRIMARY KEY,
+        hour smallint,
+        day smallint,
+        week smallint,
+        month smallint,
+        year smallint,
+        weekday smallint
     );
 """)
 
@@ -171,14 +171,25 @@ user_table_insert = ("""
        gender,
        level
     )
+    WITH uniq_staging_events AS (
+        SELECT 
+            userId,
+            firstName,
+            lastName,
+            gender,
+            level,
+            ROW_NUMBER() OVER(PARTITION BY userId ORDER BY ts DESC) AS rank
+        FROM staging_events
+        WHERE page = 'NextSong' AND userId IS NOT NULL
+    )
     SELECT 
-        DISTINCT userId,
+        userId,
         firstName,
         lastName,
         gender,
         level
-    FROM staging_events
-    WHERE page = 'NextSong' AND userId IS NOT NULL
+    FROM uniq_staging_events
+    WHERE rank = 1;
 """)
 
 song_table_insert = ("""
